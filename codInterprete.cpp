@@ -24,6 +24,7 @@ int main(){
 			
 			bool dirSalida=false;
 			bool dirEntrada=false;
+			bool addSalida=false;
 			char nombreArchSalida[200];
 			char nombreArchEntrada[200];
 			
@@ -42,6 +43,15 @@ int main(){
 					if (token != NULL){
 						strcpy(nombreArchEntrada, token); //se obtiene el nombre del archivo
 						dirEntrada=true;
+						break; //si ya se encontro el nobre del archivo ya no se sigue buscando mas tokens
+					}
+				}
+				
+				if (strcmp(token, ">>")== 0){ //busca simbolo de añadir contenido a la salida
+					token=strtok(NULL, " ");
+					if (token != NULL){
+						strcpy(nombreArchEntrada, token); //se obtiene el nombre del archivo
+						addSalida=true;
 						break; //si ya se encontro el nobre del archivo ya no se sigue buscando mas tokens
 					}
 				}
@@ -83,6 +93,20 @@ int main(){
 				dup2(fd,0); //redirigi la entrada estandar al archivo recien abierto
 				close(fd);
 			}
+			
+			if(addSalida){
+			int fd;
+				fd=open(nombreArchSalida, O_WRONLY | O_CREAT | O_APPEND, 0777); //abre o crea el archivo 
+			
+				if (fd==-1){
+				
+					perror("error al abrir archivo de salida");
+					return -1;
+				}
+				dup2(fd,1); //redirigi la salida estandar al archivo recien abierto
+				close(fd); //cierra descriptor de archivo
+			}
+			
 			pid_t returnedValue = fork(); //proceso
 			
 			if(returnedValue < 0){
@@ -119,6 +143,11 @@ int main(){
 				if(dirEntrada){
 					dup2(copiaEntradaEstandar, 0);
 					close(copiaEntradaEstandar);
+				}
+				
+				if(addSalida){ //restaurar salida estandar para que no mande el promp al archivo de salida
+					dup2(copiaSalidaEstandar, 1);
+					close(copiaSalidaEstandar);
 				}
 			
 		}
