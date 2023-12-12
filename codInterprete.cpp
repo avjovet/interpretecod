@@ -25,8 +25,10 @@ int main(){
 			bool dirSalida=false;
 			bool dirEntrada=false;
 			bool addSalida=false;
+			bool usarTuberia=false;
 			char nombreArchSalida[200];
 			char nombreArchEntrada[200];
+			char *argumento2[50];
 			
 			while (token !=NULL) { //mientras aun haya tokens
 				if (strcmp(token, ">")== 0){ //busca simbolo de redireccion de salida
@@ -34,31 +36,51 @@ int main(){
 					if (token != NULL){
 						strcpy(nombreArchSalida, token); //se obtiene el nombre del archivo
 						dirSalida=true;
-						break; //si ya se encontro el nobre del archivo ya no se sigue buscando mas tokens
+						//se quitaron los break para que se pueda hacer redireccion de entrada y 
+						//salida al mismo tiempo
+						break;
 					}
 				}
 				
-				if (strcmp(token, "<")== 0){ //busca simbolo de redireccion de entrada
+				 else if (strcmp(token, "<")== 0){ //busca simbolo de redireccion de entrada
 					token=strtok(NULL, " ");
 					if (token != NULL){
 						strcpy(nombreArchEntrada, token); //se obtiene el nombre del archivo
 						dirEntrada=true;
-						break; //si ya se encontro el nobre del archivo ya no se sigue buscando mas tokens
+
 					}
+					break;
 				}
 				
-				if (strcmp(token, ">>")== 0){ //busca simbolo de añadir contenido a la salida
+				 else if (strcmp(token, ">>")== 0){ //busca simbolo de añadir contenido a la salida
 					token=strtok(NULL, " ");
 					if (token != NULL){
 						strcpy(nombreArchEntrada, token); //se obtiene el nombre del archivo
 						addSalida=true;
-						break; //si ya se encontro el nobre del archivo ya no se sigue buscando mas tokens
+
 					}
+					break;
 				}
 				
-				tokens[i]=token; //cada parte se guarda en el arreglo
-				i++;
-				token=strtok (NULL, " ");
+				 if (strcmp(token, "|") == 0) {
+				    usarTuberia = true;
+				    token = strtok(NULL, " ");
+				    int j = 0;
+				    while (token != NULL) { //el segundo comando de la tuberia se va a almacenar en argumento2
+				        argumento2[j++] = token;
+				        token = strtok(NULL, " ");
+				    }
+				    argumento2[j] = NULL;
+				    break;
+
+				}
+				
+				else {
+					tokens[i]=token; //cada parte se guarda en el arreglo
+					i++;
+					token=strtok (NULL, " ");
+					}
+				
 			}
 			
 			tokens[i]=NULL; //se agrego porque execvp necesita que el ultimo elemento del arreglo sea null
@@ -107,6 +129,53 @@ int main(){
 				close(fd); //cierra descriptor de archivo
 			}
 			
+			if (usarTuberia) {
+			int fd[2];
+				if (pipe(fd) == -1) {
+				    perror("Error al crear la tubería");
+				    return -1;
+				}
+
+				pid_t hijo = fork();
+
+				if (hijo < 0) {
+				    perror("error creacion de proceso");
+				    return -1;
+				} else if (hijo == 0) {
+				    close(fd[0]); //cerrar extremo de lectura
+
+				    dup2(fd[1], 1); //redirigir salida estandar al extrem de lectura de tuberia
+				    close(fd[1]);
+
+				    execvp(tokens[0], tokens); //ejercutar primer comando
+				    perror("Error en execvp");
+				    exit(EXIT_FAILURE);
+				} else {
+					
+				    close(fd[1]); //cerrar extremo de escritura 
+				    dup2(fd[0], 0); //redirigir entrada estandar al extrem de lectura de tuberia
+				    close(fd[0]);
+
+				    pid_t returnedValue = fork(); //proceso para el segundo comando
+				    if (returnedValue == -1) {
+				        perror("error al crear proceso");
+				        return -1;
+				        
+				    } else if (returnedValue == 0) {
+				        execvp(argumento2[0], argumento2); //ejecutra el segundo comando de la tuberia
+				        //manejo de errores
+				        perror("error en execvp");
+				        exit(EXIT_FAILURE);
+				    } else {
+				        int status;
+				        waitpid(returnedValue, &status, 0);
+				        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+				            cerr << "El comando no se ejecutó correctamente." << endl;
+				        }
+				    }
+				}
+			    } else {
+			
 			pid_t returnedValue = fork(); //proceso
 			
 			if(returnedValue < 0){
@@ -134,7 +203,9 @@ int main(){
 					return -1;
 				}
 			}
-				
+			
+			}	
+			
 				if(dirSalida){ //restaurar salida estandar para que no mande el promp al archivo de salida
 					dup2(copiaSalidaEstandar, 1);
 					close(copiaSalidaEstandar);
@@ -149,9 +220,13 @@ int main(){
 					dup2(copiaSalidaEstandar, 1);
 					close(copiaSalidaEstandar);
 				}
-			
+				
+				if (usarTuberia){
+            				dup2(copiaEntradaEstandar, 0);
+                        		close(copiaEntradaEstandar);
+				}
+			            
 		}
 	}
     return 0;
 }
-
