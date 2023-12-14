@@ -15,13 +15,14 @@ int main(){
 		if(!strcmp(comando,"salir")){
 			return 0;
 		} else {
-		
+			
 			char *token;
 			char *tokens[50];
 			int i=0; 
 
 			token = strtok (comando, " ");
 			
+			bool ejecutarEnSegundoPlano = false;
 			bool dirSalida=false;
 			bool dirEntrada=false;
 			bool addSalida=false;
@@ -52,7 +53,7 @@ int main(){
 					break;
 				}
 				
-				 else if (strcmp(token, ">>")== 0){ //busca simbolo de aÃ±adir contenido a la salida
+				 else if (strcmp(token, ">>")== 0){ //busca simbolo de añadir contenido a la salida
 					token=strtok(NULL, " ");
 					if (token != NULL){
 						strcpy(nombreArchEntrada, token); //se obtiene el nombre del archivo
@@ -62,7 +63,7 @@ int main(){
 					break;
 				}
 				
-				 if (strcmp(token, "|") == 0) {
+				else if (strcmp(token, "|") == 0) {
 				    usarTuberia = true;
 				    token = strtok(NULL, " ");
 				    int j = 0;
@@ -74,7 +75,6 @@ int main(){
 				    break;
 
 				}
-				
 				else {
 					tokens[i]=token; //cada parte se guarda en el arreglo
 					i++;
@@ -132,7 +132,7 @@ int main(){
 			if (usarTuberia) {
 			int fd[2];
 				if (pipe(fd) == -1) {
-				    perror("Error al crear la tuberÃ­a");
+				    perror("Error al crear la tubería");
 				    return -1;
 				}
 
@@ -170,11 +170,16 @@ int main(){
 				        int status;
 				        waitpid(returnedValue, &status, 0);
 				        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-				            cerr << "El comando no se ejecutÃ³ correctamente." << endl;
+				            cerr << "El comando no se ejecutó correctamente." << endl;
 				        }
 				    }
 				}
 			    } else {
+			    	
+			if (tokens[i - 1] != NULL && strcmp(tokens[i - 1], "&") == 0) {
+                ejecutarEnSegundoPlano = true;
+                tokens[i - 1] = NULL; // Elimina el token '&' del arreglo de comandos
+            }
 			
 			pid_t returnedValue = fork(); //proceso
 			
@@ -198,10 +203,15 @@ int main(){
 			     return -1;
 			}
 			else {
-				if(waitpid(returnedValue, 0, 0) < 0){
-					perror("error waiting for child");
-					return -1;
-				}
+				if (!ejecutarEnSegundoPlano) {
+                    // Espera al proceso hijo si no se está ejecutando en segundo plano
+                    if (waitpid(returnedValue, 0, 0) < 0) {
+                        perror("error waiting for child");
+                        return -1;
+                    }
+                } else {
+                    cout << "Proceso en segundo plano ejecutando el comando." << endl;
+                }
 			}
 			
 			}	
