@@ -3,8 +3,30 @@
 #include <sys/wait.h>
 #include <cstring>
 #include <fcntl.h> //libreria para manejar archivos
+#include <cstdlib>
 
 using namespace std;
+
+void ejecutarmakefile() {
+    char makefilePath[256];
+
+    cout << "Ingrese la ruta completa del Makefile: ";
+    cin.getline(makefilePath, sizeof(makefilePath));
+
+    // Construye el comando para ejecutar el makefile
+    string makeCommand = "make -f " + string(makefilePath);
+
+    // Ejecuta el comando
+    int status = system(makeCommand.c_str());
+
+    if (status == -1) {
+        perror("Error al ejecutar make");
+        exit(EXIT_FAILURE);
+    } else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+        cout << "Error: El comando make devolvi√≥ un c√≥digo de salida no exitoso: " << WEXITSTATUS(status) << endl;
+        exit(EXIT_FAILURE);
+    }
+}
 
 int main(){
     char comando[256];
@@ -14,6 +36,11 @@ int main(){
 		
 		if(!strcmp(comando,"salir")){
 			return 0;
+		} else if(!strcmp(comando,"make")){
+			ejecutarmakefile();	
+			
+			//se ejecuta el make file
+			
 		} else {
 			
 			char *token;
@@ -53,7 +80,7 @@ int main(){
 					break;
 				}
 				
-				 else if (strcmp(token, ">>")== 0){ //busca simbolo de aÒadir contenido a la salida
+				 else if (strcmp(token, ">>")== 0){ //busca simbolo de a√±adir contenido a la salida
 					token=strtok(NULL, " ");
 					if (token != NULL){
 						strcpy(nombreArchEntrada, token); //se obtiene el nombre del archivo
@@ -132,7 +159,7 @@ int main(){
 			if (usarTuberia) {
 			int fd[2];
 				if (pipe(fd) == -1) {
-				    perror("Error al crear la tuberÌa");
+				    perror("Error al crear la tuber√≠a");
 				    return -1;
 				}
 
@@ -170,7 +197,7 @@ int main(){
 				        int status;
 				        waitpid(returnedValue, &status, 0);
 				        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-				            cerr << "El comando no se ejecutÛ correctamente." << endl;
+				            cerr << "El comando no se ejecut√≥ correctamente." << endl;
 				        }
 				    }
 				}
@@ -204,7 +231,7 @@ int main(){
 			}
 			else {
 				if (!ejecutarEnSegundoPlano) {
-                    // Espera al proceso hijo si no se est· ejecutando en segundo plano
+                    // Espera al proceso hijo si no se est√° ejecutando en segundo plano
                     if (waitpid(returnedValue, 0, 0) < 0) {
                         perror("error waiting for child");
                         return -1;
