@@ -2,5 +2,5 @@
 #include "hellomake.h"
 
 void myPrintHelloMake() {
-  std::cout << "Hello makefiles a ver que fue gaaa!" << std::endl;
+  std::cout << "archivo se ejecuta" << std::endl;
 }
