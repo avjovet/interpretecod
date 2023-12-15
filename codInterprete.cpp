@@ -4,7 +4,7 @@
 #include <cstring>
 #include <fcntl.h> //libreria para manejar archivos
 #include <cstdlib>
-
+//edita oe gaaaaaa
 using namespace std;
 
 void ejecutarmakefile() {
