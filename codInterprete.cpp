@@ -164,7 +164,8 @@ int main(){
 					} else if (hijo == 0) {
 						close(fd[0]); //cerrar extremo de lectura
 
-						dup2(fd[1], 1); //redirigir salida estandar al extrem de lectura de tuberia
+						dup2(fd[1], 1); //redirigir salida estandar al extrem de escritura de tuberia
+						//la salida del primer comando se escriba en la tubería para que el proceso padre pueda leerla
 						close(fd[1]);
 
 						execvp(tokens[0], tokens); //ejercutar primer comando
@@ -173,7 +174,9 @@ int main(){
 					} else {
 						
 						close(fd[1]); //cerrar extremo de escritura 
-						dup2(fd[0], 0); //redirigir entrada estandar al extrem de lectura de tuberia
+						//solo va a leer datos del proceso hijo y no escribirá en la tubería
+						dup2(fd[0], 0); //redirigir entrada estandar al extremo de lectura de tuberia
+						//proceso padre podrá leer la salida del primer comando que se escribió en la tubería por el primer proceso hijo.
 						close(fd[0]);
 
 						pid_t returnedValue = fork(); //proceso para el segundo comando
